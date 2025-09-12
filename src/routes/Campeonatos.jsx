@@ -55,6 +55,12 @@ const Campeonatos = ({ user, userData }) => {
     setChampionships(updatedChampionships);
   };
 
+  const isUserAlreadyRegistered = (championship, userId) => {
+    return championship.teams.some(team =>
+      team.players.some(player => player.uid === userId)
+    );
+  };
+
   const handleOpenRegistrationModal = (championship) => {
     setSelectedChampionship(championship);
     setShowRegistrationChoice(true);
@@ -73,17 +79,27 @@ const Campeonatos = ({ user, userData }) => {
     const currentChampIndex = championships.findIndex(c => c.id === selectedChampionship.id);
     if (currentChampIndex === -1) return;
 
-    const updatedChampionships = [...championships];
-    const currentChamp = updatedChampionships[currentChampIndex];
+    const currentChamp = championships[currentChampIndex];
+    if (isUserAlreadyRegistered(currentChamp, user.uid)) {
+      setFailMessage("Você já está inscrito neste campeonato.");
+      setShowFailMessage(true);
+      setTimeout(() => setShowFailMessage(false), 3000);
+      setShowModal(false);
+      return;
+    }
 
     if (currentChamp.teams.length >= 8) {
       setFailMessage("Este campeonato já atingiu o número máximo de 8 times.");
       setShowFailMessage(true);
       setTimeout(() => setShowFailMessage(false), 3000);
+      setShowModal(false);
       return;
     }
 
-    const availableTeams = currentChamp.teams.filter(team => team.players.length < 15);
+    const updatedChampionships = [...championships];
+    const updatedChamp = updatedChampionships[currentChampIndex];
+
+    const availableTeams = updatedChamp.teams.filter(team => team.players.length < 15);
 
     let teamToJoin;
 
@@ -93,14 +109,14 @@ const Campeonatos = ({ user, userData }) => {
         teamToJoin.players.push({ name: userData.name, uid: user.uid });
         setSuccessMessage(`Você foi adicionado ao time "${teamToJoin.teamName}"!`);
     } else {
-        const autoTeamCount = currentChamp.teams.filter(t => t.teamName.includes('Time Automático')).length;
+        const autoTeamCount = updatedChamp.teams.filter(t => t.teamName.includes('Time Automático')).length;
         const newTeamName = `Time Automático ${autoTeamCount + 1}`;
         const newTeam = {
-            teamName: newTeamName,
-            players: [{ name: userData.name, uid: user.uid }],
-            registeredBy: user.uid
+          teamName: newTeamName,
+          players: [{ name: userData.name, uid: user.uid }],
+          registeredBy: user.uid
         };
-        currentChamp.teams.push(newTeam);
+        updatedChamp.teams.push(newTeam);
         setSuccessMessage(`Não havia times incompletos. Um novo time, "${newTeamName}", foi criado para você!`);
     }
 
@@ -119,6 +135,18 @@ const Campeonatos = ({ user, userData }) => {
       return;
     }
     
+    const currentChampIndex = championships.findIndex(c => c.id === selectedChampionship.id);
+    if (currentChampIndex === -1) return;
+
+    const currentChamp = championships[currentChampIndex];
+    if (isUserAlreadyRegistered(currentChamp, user.uid)) {
+      setFailMessage("Você já está inscrito neste campeonato.");
+      setShowFailMessage(true);
+      setTimeout(() => setShowFailMessage(false), 3000);
+      setShowModal(false);
+      return;
+    }
+
     const playersList = newPlayers.split(',').map(p => p.trim()).filter(p => p.length > 0);
     const playersFormatted = playersList.map(p => ({ name: p, uid: crypto.randomUUID() }));
     
@@ -129,26 +157,24 @@ const Campeonatos = ({ user, userData }) => {
       return;
     }
 
-    const currentChampIndex = championships.findIndex(c => c.id === selectedChampionship.id);
-    if (currentChampIndex === -1) return;
-
-    const updatedChampionships = [...championships];
-    const currentChamp = updatedChampionships[currentChampIndex];
-
     if (currentChamp.teams.length >= 8) {
       setFailMessage("Este campeonato já atingiu o número máximo de 8 times.");
       setShowFailMessage(true);
       setTimeout(() => setShowFailMessage(false), 3000);
+      setShowModal(false);
       return;
     }
     
+    const updatedChampionships = [...championships];
+    const updatedChamp = updatedChampionships[currentChampIndex];
+
     const newTeam = {
       teamName: newTeamName,
       players: playersFormatted,
       registeredBy: user.uid
     };
     
-    currentChamp.teams.push(newTeam);
+    updatedChamp.teams.push(newTeam);
     saveChampionships(updatedChampionships);
     
     setNewTeamName('');
